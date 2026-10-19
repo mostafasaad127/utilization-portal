@@ -1,0 +1,14 @@
+-- Replace ADMIN/EDITOR/VIEWER with ADMIN/EMPLOYEE.
+-- Existing EDITOR and VIEWER users become EMPLOYEE; admins stay ADMIN.
+ALTER TABLE "user" ALTER COLUMN "role" DROP DEFAULT;
+
+CREATE TYPE "Role_new" AS ENUM ('ADMIN', 'EMPLOYEE');
+
+ALTER TABLE "user"
+  ALTER COLUMN "role" TYPE "Role_new"
+  USING (CASE WHEN "role"::text = 'ADMIN' THEN 'ADMIN' ELSE 'EMPLOYEE' END)::"Role_new";
+
+DROP TYPE "Role";
+ALTER TYPE "Role_new" RENAME TO "Role";
+
+ALTER TABLE "user" ALTER COLUMN "role" SET DEFAULT 'EMPLOYEE';

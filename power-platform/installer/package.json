@@ -1,0 +1,18 @@
+{
+  "name": "utilization-portal-sharepoint-installer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node app/generate.ts",
+    "build": "node app/generate.ts && node build.mjs",
+    "bundle": "node build.mjs",
+    "mock": "node test/mock-sharepoint.mjs",
+    "test": "node app/generate.ts"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "exceljs": "4.4.0",
+    "ajv": "8.17.1",
+    "js-yaml": "4.1.0"
+  }
+}

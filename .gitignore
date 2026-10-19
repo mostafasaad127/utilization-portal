@@ -1,0 +1,27 @@
+# dependencies & builds
+node_modules/
+.next/
+out/
+build/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+pwc-utilization-portal/src/generated/prisma/
+
+# secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+.vercel/
+
+# tooling / local
+.DS_Store
+.claude/
+.windsurf/
+power-platform/installer/tools/*/bin/
+power-platform/installer/tools/*/obj/
+power-platform/installer/app/out/.typecheck-program.json
+
+# screenshots taken with earlier (non-anonymized) demo data
+power-platform/ui-reference/

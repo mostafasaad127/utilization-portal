@@ -1,0 +1,366 @@
+// Utilization Portal — data model
+//
+// The spreadsheet stored one row per project/resource combination with free-text
+// columns. This schema normalises it: a Project has many Assignments (person +
+// capability + allocation % over a date range), a risk register and a dated
+// status-update log. Reference data (clients, industries, lines of service,
+// capabilities, territories) lives in lookup tables so values stay consistent.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Authentication (Better Auth). Field names follow Better Auth's core schema.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN // sees and manages everything: all projects, people, utilization, admin
+  EMPLOYEE // self-service: logs own project work, risks and updates; sees only own data
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          Role      @default(EMPLOYEE)
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+  person   Person?
+
+  projectsCreated Project[]       @relation("ProjectCreatedBy")
+  projectsUpdated Project[]       @relation("ProjectUpdatedBy")
+  updates         ProjectUpdate[]
+  risksCreated    Risk[]
+  auditLogs       AuditLog[]
+  invitationsSent Invitation[]    @relation("InvitedBy")
+
+  @@map("user")
+}
+
+/// An admin-added user who hasn't signed in yet. The login itself is created
+/// by SSO on first sign-in, which then picks up this role. Keeping the user row
+/// out until then avoids linking an SSO identity to a pre-made account.
+model Invitation {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  name        String
+  role        Role      @default(EMPLOYEE)
+  invitedById String?
+  invitedBy   User?     @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("invitation")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model RateLimit {
+  id          String @id @default(cuid())
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@map("rate_limit")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reference data
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Territory {
+  id   String @id @default(cuid())
+  code String @unique // "ME", "UK"
+  name String
+
+  linesOfService LineOfService[]
+  projects       Project[]
+  people         Person[]
+
+  @@map("territory")
+}
+
+model Capability {
+  id       String  @id @default(cuid())
+  code     String  @unique // "BA", "PM", "PdM", "PO", "SD", "PD"
+  name     String
+  isActive Boolean @default(true)
+
+  assignments Assignment[]
+  people      Person[]
+
+  @@map("capability")
+}
+
+model Industry {
+  id       String  @id @default(cuid())
+  name     String  @unique
+  isActive Boolean @default(true)
+
+  clients  Client[]
+  projects Project[]
+
+  @@map("industry")
+}
+
+model LineOfService {
+  id          String    @id @default(cuid())
+  name        String    @unique // "UK Tech Catalyst", "ME D&C – FS"
+  territoryId String
+  territory   Territory @relation(fields: [territoryId], references: [id])
+  isActive    Boolean   @default(true)
+
+  projects Project[]
+
+  @@index([territoryId])
+  @@map("line_of_service")
+}
+
+model Client {
+  id         String    @id @default(cuid())
+  name       String    @unique
+  industryId String?
+  industry   Industry? @relation(fields: [industryId], references: [id])
+  isInternal Boolean   @default(false)
+  isActive   Boolean   @default(true)
+
+  projects Project[]
+
+  @@map("client")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// People & projects
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum Grade {
+  ASSOCIATE
+  SENIOR_ASSOCIATE
+  MANAGER
+  SENIOR_MANAGER
+  DIRECTOR
+  PARTNER
+}
+
+model Person {
+  id                  String      @id @default(cuid())
+  name                String
+  email               String?     @unique
+  grade               Grade?
+  territoryId         String?
+  territory           Territory?  @relation(fields: [territoryId], references: [id])
+  primaryCapabilityId String?
+  primaryCapability   Capability? @relation(fields: [primaryCapabilityId], references: [id])
+  isActive            Boolean     @default(true)
+  userId              String?     @unique
+  user                User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  assignments Assignment[]
+
+  @@index([name])
+  @@map("person")
+}
+
+enum ProjectStatus {
+  PIPELINE
+  ACTIVE
+  ON_HOLD
+  CLOSED
+}
+
+enum Rag {
+  GREEN
+  AMBER
+  RED
+}
+
+model Project {
+  id              String         @id @default(cuid())
+  number          Int            @unique @default(autoincrement()) // human reference, shown as PRJ-0001
+  name            String
+  clientId        String
+  client          Client         @relation(fields: [clientId], references: [id])
+  industryId      String?
+  industry        Industry?      @relation(fields: [industryId], references: [id])
+  lineOfServiceId String?
+  lineOfService   LineOfService? @relation(fields: [lineOfServiceId], references: [id])
+  territoryId     String
+  territory       Territory      @relation(fields: [territoryId], references: [id])
+  status          ProjectStatus  @default(ACTIVE)
+  rag             Rag            @default(GREEN)
+  startDate       DateTime       @db.Date
+  endDate         DateTime?      @db.Date // null = TBD
+  multiTower      Boolean        @default(false)
+  engagementLeads String[] // partners / leads; often outside the resource pool
+  scope           String?
+  createdById     String?
+  createdBy       User?          @relation("ProjectCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById     String?
+  updatedBy       User?          @relation("ProjectUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  deletedAt       DateTime? // soft delete; rows are retained for audit
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  assignments Assignment[]
+  risks       Risk[]
+  updates     ProjectUpdate[]
+
+  @@index([status])
+  @@index([territoryId])
+  @@index([lineOfServiceId])
+  @@index([clientId])
+  @@index([startDate, endDate])
+  @@index([deletedAt])
+  @@map("project")
+}
+
+model Assignment {
+  id           String      @id @default(cuid())
+  projectId    String
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  personId     String
+  person       Person      @relation(fields: [personId], references: [id], onDelete: Restrict)
+  capabilityId String?
+  capability   Capability? @relation(fields: [capabilityId], references: [id])
+  allocation   Int // percent of the person's capacity, 0–100 (can exceed for overtime)
+  startDate    DateTime    @db.Date
+  endDate      DateTime?   @db.Date // null = runs until the project ends
+  note         String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([personId, startDate])
+  @@index([projectId])
+  @@map("assignment")
+}
+
+enum RiskSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RiskStatus {
+  OPEN
+  MITIGATING
+  CLOSED
+}
+
+model Risk {
+  id          String       @id @default(cuid())
+  projectId   String
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  mitigation  String?
+  severity    RiskSeverity @default(MEDIUM)
+  status      RiskStatus   @default(OPEN)
+  owner       String?
+  createdById String?
+  createdBy   User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([projectId, status])
+  @@map("risk")
+}
+
+model ProjectUpdate {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  rag       Rag
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+  @@map("project_update")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Audit trail — append only. Every mutation and sign-in writes a row.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String // e.g. project.create, assignment.delete, auth.sign_in
+  entityType String
+  entityId   String?
+  summary    String
+  changes    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([actorId])
+  @@map("audit_log")
+}

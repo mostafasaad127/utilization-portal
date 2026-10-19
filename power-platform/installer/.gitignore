@@ -1,0 +1,4 @@
+node_modules/
+tools/*/bin/
+tools/*/obj/
+app/out/.typecheck-program.json

@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+/*
+ * Appkit 4 design tokens (orange theme), taken from appkit.pwc.com.
+ * Components reference these semantic tokens only — never raw hex — so the
+ * light / dark modes and any future theme change happen here.
+ */
+:root,
+[data-mode="light"] {
+  --ap-primary: #d04a02;
+  --ap-primary-hover: #e45c2b;
+  --ap-primary-pressed: #a43e03;
+  --ap-primary-tint: #fdeee7;
+
+  --ap-bg-default: #f3f3f3;
+  --ap-bg-container: #ffffff;
+  --ap-bg-container-alt: #f3f3f3;
+  --ap-bg-hover: #f3f3f3;
+  --ap-bg-selected: #e8e8e8;
+  --ap-bg-tertiary: #474747;
+
+  --ap-text-heading: #252525;
+  --ap-text-body: #474747;
+  --ap-text-light: #696969;
+  --ap-text-disabled: #b5b5b5;
+  --ap-text-inverse: #ffffff;
+
+  --ap-border: #8e95a2;
+  --ap-border-light: #e8e8e8;
+  --ap-border-input: #d1d1d1;
+
+  --ap-success: #21812d;
+  --ap-success-tint: #e6f2e7;
+  --ap-warning: #ffbf1f;
+  --ap-warning-text: #8a5a00;
+  --ap-warning-tint: #fff5dc;
+  --ap-error: #c52a1a;
+  --ap-error-tint: #f9e6e4;
+  --ap-info: #415385;
+  --ap-info-tint: #e7eaf2;
+
+  /* Utilization scale (bench → over-allocated) */
+  --util-bench: #e8e8e8;
+  --util-under: #fbd5c2;
+  --util-healthy: #f39b6d;
+  --util-full: #d04a02;
+  --util-over: #8a2a00;
+
+  --ap-shadow-low: 0 0.125rem 0.25rem -0.125rem rgba(71, 71, 71, 0.24);
+  --ap-shadow-medium: 0 0.25rem 0.5rem -0.125rem rgba(71, 71, 71, 0.24);
+  --ap-shadow-high: 0 0.5rem 1rem -0.125rem rgba(71, 71, 71, 0.24);
+  --ap-focus: 0 0 0 0.125rem var(--ap-bg-container), 0 0 0 0.25rem #1060cf;
+
+  color-scheme: light;
+}
+
+[data-mode="dark"] {
+  --ap-primary: #d04a02;
+  --ap-primary-hover: #e45c2b;
+  --ap-primary-pressed: #fb734d;
+  --ap-primary-tint: #3a2216;
+
+  --ap-bg-default: #191919;
+  --ap-bg-container: #252525;
+  --ap-bg-container-alt: #303030;
+  --ap-bg-hover: #303030;
+  --ap-bg-selected: #3b3b3b;
+  --ap-bg-tertiary: #ffffff;
+
+  --ap-text-heading: #ffffff;
+  --ap-text-body: #d1d1d1;
+  --ap-text-light: #979797;
+  --ap-text-disabled: #696969;
+  --ap-text-inverse: #252525;
+
+  --ap-border: #8e95a2;
+  --ap-border-light: #3b3b3b;
+  --ap-border-input: #535353;
+
+  --ap-success: #7ac282;
+  --ap-success-tint: #1d3320;
+  --ap-warning: #ffbf1f;
+  --ap-warning-text: #ffd36b;
+  --ap-warning-tint: #3a3014;
+  --ap-error: #dc7f76;
+  --ap-error-tint: #3c1f1c;
+  --ap-info: #a3b1d6;
+  --ap-info-tint: #232a3d;
+
+  --util-bench: #3b3b3b;
+  --util-under: #5c3420;
+  --util-healthy: #a8501f;
+  --util-full: #e45c2b;
+  --util-over: #ffb08a;
+
+  --ap-shadow-low: 0 0.125rem 0.25rem -0.125rem rgba(0, 0, 0, 0.48);
+  --ap-shadow-medium: 0 0.25rem 0.5rem -0.125rem rgba(0, 0, 0, 0.48);
+  --ap-shadow-high: 0 0.5rem 1rem -0.125rem rgba(0, 0, 0, 0.48);
+  --ap-focus: 0 0 0 0.125rem var(--ap-bg-container), 0 0 0 0.25rem #6ea8ff;
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "PwC Helvetica Neue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  --color-primary: var(--ap-primary);
+  --color-primary-hover: var(--ap-primary-hover);
+  --color-primary-pressed: var(--ap-primary-pressed);
+  --color-primary-tint: var(--ap-primary-tint);
+
+  --color-page: var(--ap-bg-default);
+  --color-container: var(--ap-bg-container);
+  --color-container-alt: var(--ap-bg-container-alt);
+  --color-hover: var(--ap-bg-hover);
+  --color-selected: var(--ap-bg-selected);
+
+  --color-heading: var(--ap-text-heading);
+  --color-body: var(--ap-text-body);
+  --color-muted: var(--ap-text-light);
+  --color-disabled: var(--ap-text-disabled);
+  --color-inverse: var(--ap-text-inverse);
+
+  --color-line: var(--ap-border-light);
+  --color-line-strong: var(--ap-border);
+  --color-line-input: var(--ap-border-input);
+
+  --color-success: var(--ap-success);
+  --color-success-tint: var(--ap-success-tint);
+  --color-warning: var(--ap-warning);
+  --color-warning-text: var(--ap-warning-text);
+  --color-warning-tint: var(--ap-warning-tint);
+  --color-error: var(--ap-error);
+  --color-error-tint: var(--ap-error-tint);
+  --color-info: var(--ap-info);
+  --color-info-tint: var(--ap-info-tint);
+
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+
+  --shadow-low: var(--ap-shadow-low);
+  --shadow-medium: var(--ap-shadow-medium);
+  --shadow-high: var(--ap-shadow-high);
+  --shadow-focus: var(--ap-focus);
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    letter-spacing: -0.025rem; /* Appkit 4 body tracking (-0.4px) */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    background: var(--ap-bg-default);
+    color: var(--ap-text-body);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--ap-text-heading);
+    font-weight: 500;
+  }
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--ap-focus);
+    border-radius: var(--radius-sm);
+  }
+  ::selection {
+    background: var(--ap-primary-tint);
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.6;
+    cursor: pointer;
+  }
+  [data-mode="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
